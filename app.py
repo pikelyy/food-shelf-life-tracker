@@ -1,0 +1,323 @@
+import streamlit as st
+from datetime import datetime, timedelta
+from utils.database import (
+    init_db,
+    add_item,
+    get_all_items,
+    delete_item,
+    get_shopping_suggestions,
+)
+
+st.set_page_config(page_title="Food Shelf Life Tracker", page_icon="🥗", layout="wide")
+
+# 自定义 CSS - 暖色系设计
+st.markdown(
+    """
+<style>
+    /* 全局 */
+    .stApp { background: #fdf6f0; }
+    .main > div { padding: 1.5rem 2rem; }
+
+    /* 标题 */
+    h1, h2, h3 { color: #2d1810; }
+
+    /* 卡片 */
+    .food-card {
+        background: white;
+        border-radius: 16px;
+        padding: 1.2rem 1.5rem;
+        box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+        margin-bottom: 1rem;
+        border-left: 5px solid #4caf50;
+        transition: transform 0.15s;
+    }
+    .food-card:hover { transform: translateY(-2px); }
+    .food-card.expiring {
+        border-left-color: #ff9800;
+        background: #fff8e1;
+    }
+    .food-card.expired {
+        border-left-color: #f44336;
+        background: #ffebee;
+    }
+
+    /* 徽标 */
+    .badge {
+        display: inline-block;
+        padding: 0.15rem 0.7rem;
+        border-radius: 20px;
+        font-size: 0.75rem;
+        font-weight: 600;
+    }
+    .badge-green { background: #e8f5e9; color: #2e7d32; }
+    .badge-orange { background: #fff3e0; color: #e65100; }
+    .badge-red { background: #ffebee; color: #c62828; }
+
+    /* 提醒横幅 */
+    .alert-banner {
+        background: linear-gradient(135deg, #fff3e0, #ffe0b2);
+        border: 1px solid #ffb74d;
+        border-radius: 12px;
+        padding: 0.8rem 1.2rem;
+        margin-bottom: 1.5rem;
+        font-weight: 500;
+        color: #e65100;
+    }
+
+    /* 录入区卡片 */
+    .input-card {
+        background: white;
+        border-radius: 16px;
+        padding: 2rem;
+        box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+    }
+
+    /* 分割线 */
+    .section-title {
+        font-size: 1.1rem;
+        font-weight: 600;
+        color: #2d1810;
+        margin: 1.5rem 0 1rem 0;
+        padding-bottom: 0.5rem;
+        border-bottom: 2px solid #f0e0d0;
+    }
+
+    /* 购物建议卡片 */
+    .suggestion-category {
+        background: white;
+        border-radius: 12px;
+        padding: 1rem 1.5rem;
+        margin-bottom: 1rem;
+        box-shadow: 0 1px 6px rgba(0,0,0,0.05);
+    }
+    .suggestion-category h4 { margin: 0 0 0.5rem 0; color: #2d1810; }
+    .suggestion-item {
+        padding: 0.3rem 0;
+        color: #555;
+        font-size: 0.95rem;
+    }
+
+    /* Streamlit 原生微调 */
+    .stButton > button {
+        border-radius: 10px;
+        font-weight: 500;
+    }
+    .stTextInput > div > div > input { border-radius: 10px; }
+    .stSelectbox > div > div > select { border-radius: 10px; }
+    .stDateInput > div > div > input { border-radius: 10px; }
+    .stNumberInput > div > div > input { border-radius: 10px; }
+</style>
+""",
+    unsafe_allow_html=True,
+)
+
+# 初始化数据库
+init_db()
+
+# ========== 顶部标题 ==========
+col_logo, col_title = st.columns([0.06, 1])
+with col_logo:
+    st.markdown("<h1 style='font-size:2.2rem;margin:0;'>🥗</h1>", unsafe_allow_html=True)
+with col_title:
+    st.markdown("<h1 style='margin:0;'>Food Shelf Life Tracker</h1>", unsafe_allow_html=True)
+    st.markdown(
+        "<p style='color:#8d6e63;margin-top:-0.3rem;'>追踪保质期 · 拒绝浪费</p>",
+        unsafe_allow_html=True,
+    )
+
+st.markdown("---")
+
+# ========== 检查即将过期商品，显示提醒横幅 ==========
+today = datetime.today().strftime("%Y-%m-%d")
+all_items = get_all_items()
+expiring_soon = [
+    it for it in all_items
+    if it["expire_date"] >= today
+    and (datetime.strptime(it["expire_date"], "%Y-%m-%d") - datetime.today()).days <= 5
+]
+expired_items = [it for it in all_items if it["expire_date"] < today]
+expiring_count = len(expiring_soon)
+expired_count = len(expired_items)
+
+if expiring_count > 0:
+    msg = "⏰ 有 {} 件商品即将过期，记得及时处理！".format(expiring_count)
+    if expired_count > 0:
+        msg += f" 还有 {expired_count} 件已过期，快去生成购物建议吧！"
+    st.markdown(
+        f'<div class="alert-banner">{msg}</div>', unsafe_allow_html=True
+    )
+
+# ========== Tab 布局 ==========
+tab1, tab2, tab3 = st.tabs(["📦 录入商品", "📋 食品清单", "🛒 购物建议"])
+
+# ==================== TAB 1: 录入 ====================
+with tab1:
+    st.markdown('<div class="input-card">', unsafe_allow_html=True)
+    st.markdown("### ✏️ 添加新商品")
+
+    col1, col2 = st.columns(2)
+    with col1:
+        name = st.text_input("商品名称", placeholder="例如：鲜牛奶、鸡胸肉...")
+        category = st.selectbox(
+            "分类", ["乳制品", "肉类", "蔬菜", "饮料", "水果", "调味品", "零食", "其他"]
+        )
+
+    with col2:
+        purchase_date = st.date_input(
+            "购买日期", value=datetime.today()
+        )
+        shelf_life = st.number_input(
+            "保质期（天）", min_value=1, max_value=3650, value=7, step=1
+        )
+
+    col_btn, _ = st.columns([0.3, 0.7])
+    with col_btn:
+        submitted = st.button("➕ 添加", type="primary", use_container_width=True)
+
+    if submitted:
+        if not name.strip():
+            st.error("请输入商品名称")
+        else:
+            add_item(
+                name.strip(),
+                category,
+                purchase_date.strftime("%Y-%m-%d"),
+                shelf_life,
+            )
+            expire_date = purchase_date + timedelta(days=shelf_life)
+            st.success(
+                f"✅ 「{name.strip()}」已添加，到期日为 **{expire_date.strftime('%Y-%m-%d')}**"
+            )
+            st.rerun()
+
+    st.markdown("</div>", unsafe_allow_html=True)
+
+# ==================== TAB 2: 清单 ====================
+with tab2:
+    st.markdown(
+        f'<div style="margin-bottom:1rem;color:#8d6e63;">共 {len(all_items)} 件商品 · 🟢 正常 · 🟡 即将过期 · 🔴 已过期</div>',
+        unsafe_allow_html=True,
+    )
+
+    if not all_items:
+        st.info("📭 还没有商品，去「录入商品」页面添加吧！")
+    else:
+        # 按状态分组
+        normal_items = []
+        for it in all_items:
+            if it["expire_date"] < today:
+                continue
+            days_left = (datetime.strptime(it["expire_date"], "%Y-%m-%d") - datetime.today()).days
+            if days_left > 5:
+                normal_items.append(it)
+
+        for item in all_items:
+            days_left = (datetime.strptime(item["expire_date"], "%Y-%m-%d") - datetime.today()).days
+
+            # 判断状态
+            if days_left < 0:
+                card_class = "food-card expired"
+                badge = '<span class="badge badge-red">已过期</span>'
+                days_text = f"已过期 {abs(days_left)} 天"
+            elif days_left <= 3:
+                card_class = "food-card expiring"
+                badge = f'<span class="badge badge-orange">⏰ {days_left} 天</span>'
+                days_text = f"还剩 {days_left} 天"
+            elif days_left <= 5:
+                card_class = "food-card expiring"
+                badge = f'<span class="badge badge-orange">⚠️ {days_left} 天</span>'
+                days_text = f"还剩 {days_left} 天"
+            else:
+                card_class = "food-card"
+                badge = f'<span class="badge badge-green">✅ {days_left} 天</span>'
+                days_text = f"还剩 {days_left} 天"
+
+            with st.container():
+                st.markdown(
+                    f"""
+                    <div class="{card_class}">
+                        <div style="display:flex;justify-content:space-between;align-items:flex-start;">
+                            <div>
+                                <strong style="font-size:1.1rem;">{item['name']}</strong>
+                                <span style="margin-left:0.6rem;font-size:0.8rem;color:#8d6e63;">{item['category']}</span>
+                            </div>
+                            <div style="display:flex;align-items:center;gap:0.5rem;">
+                                {badge}
+                            </div>
+                        </div>
+                        <div style="display:flex;gap:1.5rem;margin-top:0.4rem;font-size:0.85rem;color:#888;">
+                            <span>🛒 购买日：{item['purchase_date']}</span>
+                            <span>📅 到期日：{item['expire_date']}</span>
+                            <span>⏳ {days_text}</span>
+                        </div>
+                    </div>
+                    """,
+                    unsafe_allow_html=True,
+                )
+
+                # 删除按钮（放在卡片下方）
+                col_del, _ = st.columns([0.1, 0.9])
+                with col_del:
+                    if st.button(f"🗑️ 删除", key=f"del_{item['id']}"):
+                        delete_item(item["id"])
+                        st.rerun()
+
+# ==================== TAB 3: 购物建议 ====================
+with tab3:
+    st.markdown("### 🛒 一键购物建议")
+    st.markdown(
+        '<p style="color:#8d6e63;">基于已过期和即将过期（3天内）的商品自动生成</p>',
+        unsafe_allow_html=True,
+    )
+
+    suggestions = get_shopping_suggestions()
+
+    if not suggestions:
+        st.success("🎉 所有商品都很新鲜，暂时不需要购物！")
+    else:
+        # 按分类汇总
+        from collections import defaultdict
+
+        cat_map = defaultdict(list)
+        for item in suggestions:
+            cat_map[item["category"]].append(item)
+
+        total = len(suggestions)
+        st.markdown(
+            f'<div class="alert-banner">🛍️ 共 {total} 件商品需要补充，快去采购吧！</div>',
+            unsafe_allow_html=True,
+        )
+
+        for cat, items in sorted(cat_map.items()):
+            with st.container():
+                items_html = ""
+                for it in items:
+                    status = "🔴 已过期" if it["expire_date"] < today else "⏰ 即将过期"
+                    items_html += f'<div class="suggestion-item">• <strong>{it["name"]}</strong> — {status}（{it["expire_date"]}）</div>'
+
+                st.markdown(
+                    f"""
+                    <div class="suggestion-category">
+                        <h4>📂 {cat}（{len(items)} 件）</h4>
+                        {items_html}
+                    </div>
+                    """,
+                    unsafe_allow_html=True,
+                )
+
+        # 一键复制
+        text_lines = ["🛒 购物清单", "=" * 20]
+        for cat, items in sorted(cat_map.items()):
+            text_lines.append(f"\n【{cat}】")
+            for it in items:
+                text_lines.append(f"  · {it['name']}")
+        text_lines.append(f"\n{'=' * 20}")
+        text_lines.append(f"共 {total} 件商品需要补充")
+
+        copy_text = "\n".join(text_lines)
+        st.text_area(
+            "📋 可复制的购物清单",
+            value=copy_text,
+            height=200,
+            help="选中全部内容后复制，发送给家人或贴到冰箱上",
+        )
