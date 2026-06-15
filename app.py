@@ -1,4 +1,5 @@
 import streamlit as st
+import os
 from datetime import datetime, timedelta
 from utils.database import (
     init_db,
@@ -24,6 +25,7 @@ st.markdown(
     /* 卡片 */
     .food-card {
         background: white;
+        color: #2d1810;
         border-radius: 16px;
         padding: 1.2rem 1.5rem;
         box-shadow: 0 2px 12px rgba(0,0,0,0.06);
@@ -35,10 +37,12 @@ st.markdown(
     .food-card.expiring {
         border-left-color: #ff9800;
         background: #fff8e1;
+        color: #5d3a00;
     }
     .food-card.expired {
         border-left-color: #f44336;
         background: #ffebee;
+        color: #b71c1c;
     }
 
     /* 徽标 */
@@ -64,9 +68,13 @@ st.markdown(
         color: #e65100;
     }
 
+    /* 全局文字颜色 */
+    body, .stMarkdown, p, li, span, div:not(.stButton) { color: #2d1810; }
+
     /* 录入区卡片 */
     .input-card {
         background: white;
+        color: #2d1810;
         border-radius: 16px;
         padding: 2rem;
         box-shadow: 0 2px 12px rgba(0,0,0,0.06);
@@ -85,6 +93,7 @@ st.markdown(
     /* 购物建议卡片 */
     .suggestion-category {
         background: white;
+        color: #2d1810;
         border-radius: 12px;
         padding: 1rem 1.5rem;
         margin-bottom: 1rem;
@@ -113,6 +122,54 @@ st.markdown(
 
 # 初始化数据库
 init_db()
+
+# ========== 侧边栏 - 设置指南 ==========
+with st.sidebar:
+    st.markdown("### ⚙️ 设置每日提醒")
+    st.markdown(
+        """
+    <div style="background:white;border-radius:12px;padding:1rem 1.2rem;font-size:0.85rem;box-shadow:0 1px 6px rgba(0,0,0,0.05);">
+        <p style="margin:0 0 0.5rem 0;color:#555;">
+        想让电脑每天自动弹窗提醒你食物要过期了？只需两步：
+        </p>
+        <ol style="margin:0;padding-left:1.2rem;color:#555;line-height:1.8;">
+            <li>
+                右键 <strong>PowerShell</strong> → 以管理员身份运行
+            </li>
+            <li>
+                粘贴以下命令执行：
+            </li>
+        </ol>
+    </div>
+    """,
+        unsafe_allow_html=True,
+    )
+
+    st.code(
+        f"cd {os.path.dirname(os.path.abspath(__file__))}",
+        language="powershell",
+    )
+
+    col1, col2, _ = st.columns([0.25, 0.45, 0.3])
+    with col1:
+        st.code(".venv\\Scripts\\Activate.ps1", language="powershell")
+    with col2:
+        st.code("python setup_scheduler.py", language="powershell")
+
+    st.markdown(
+        """
+    <div style="margin-top:0.5rem;font-size:0.8rem;color:#888;">
+        ✅ 设置成功后，每天 9:00 系统会自动检查并弹窗提醒
+    </div>
+    """,
+        unsafe_allow_html=True,
+    )
+
+    st.markdown("---")
+    st.markdown(
+        "<div style='font-size:0.8rem;color:#aaa;text-align:center;'>Food Shelf Life Tracker v1.0</div>",
+        unsafe_allow_html=True,
+    )
 
 # ========== 顶部标题 ==========
 col_logo, col_title = st.columns([0.06, 1])
@@ -239,7 +296,7 @@ with tab2:
                         <div style="display:flex;justify-content:space-between;align-items:flex-start;">
                             <div>
                                 <strong style="font-size:1.1rem;">{item['name']}</strong>
-                                <span style="margin-left:0.6rem;font-size:0.8rem;color:#8d6e63;">{item['category']}</span>
+                                <span style="margin-left:0.6rem;font-size:0.8rem;color:white;font-weight:500;">{item['category']}</span>
                             </div>
                             <div style="display:flex;align-items:center;gap:0.5rem;">
                                 {badge}

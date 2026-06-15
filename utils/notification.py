@@ -1,14 +1,25 @@
-from plyer import notification
+import subprocess
+import shlex
 
 
 def show_notification(title, message):
-    """显示 Windows 系统通知弹窗"""
+    """通过 PowerShell 调用 Windows 原生弹窗通知（无需第三方库）"""
     try:
-        notification.notify(
-            title=title,
-            message=message,
-            app_name="Food Shelf Life Tracker",
-            timeout=10,
+        ps_script = (
+            '[System.Reflection.Assembly]::LoadWithPartialName("System.Windows.Forms") | Out-Null; '
+            '$n = New-Object System.Windows.Forms.NotifyIcon; '
+            '$n.Icon = [System.Drawing.SystemIcons]::Information; '
+            f'$n.BalloonTipTitle = {shlex.quote(title)}; '
+            f'$n.BalloonTipText = {shlex.quote(message)}; '
+            '$n.Visible = $true; '
+            '$n.ShowBalloonTip(10000); '
+            'Start-Sleep -Seconds 12; '
+            '$n.Dispose()'
+        )
+        subprocess.run(
+            ["powershell", "-STA", "-Command", ps_script],
+            capture_output=True,
+            timeout=15,
         )
         return True
     except Exception as e:
