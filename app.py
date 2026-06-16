@@ -205,7 +205,8 @@ with st.sidebar:
         if st.button("💾 保存配置", use_container_width=True, key="save_mail"):
             try:
                 save_config(sender, password, recipient, pp_token_input)
-                st.success("✅ 配置已保存！")
+                st.toast("✅ 配置已保存！", icon="✅")
+                st.rerun()
             except Exception as e:
                 st.error(f"❌ 保存失败：{e}")
 
@@ -246,7 +247,8 @@ with st.sidebar:
         if st.button("💾 保存配置", use_container_width=True, key="save_pp"):
             try:
                 save_config(sender, password, recipient, pp_token_input)
-                st.success("✅ PushPlus 配置已保存！")
+                st.toast("✅ PushPlus 配置已保存！", icon="✅")
+                st.rerun()
             except Exception as e:
                 st.error(f"❌ 保存失败：{e}")
 
