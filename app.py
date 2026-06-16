@@ -159,11 +159,11 @@ with st.sidebar:
     if configured:
         if st.button("📨 发送测试邮件", use_container_width=True):
             with st.spinner("发送中..."):
-                ok = send_email("🥗 测试邮件", "<h2>邮箱配置成功！</h2><p>以后每天会收到食物保质期提醒邮件。</p>")
+                ok, err = send_email("🥗 测试邮件", "<h2>邮箱配置成功！</h2><p>以后每天会收到食物保质期提醒邮件。</p>")
                 if ok:
                     st.success("✅ 测试邮件已发送，请查收！")
                 else:
-                    st.error("❌ 发送失败，请检查配置")
+                    st.error(f"❌ 发送失败：{err}")
 
     st.markdown("---")
     st.markdown("""\

@@ -83,7 +83,8 @@ def save_config(sender, password, recipient):
 
 def show_notification(title, message):
     """发送邮件提醒（兼容原接口）"""
-    return send_email(title, message)
+    ok, err = send_email(title, message)
+    return ok
 
 
 def send_email(subject, body):
@@ -110,10 +111,10 @@ def send_email(subject, body):
             server.sendmail(config["sender"], [config["recipient"]], msg.as_string())
 
         print(f"📧 邮件已发送至 {config['recipient']}")
-        return True
+        return True, "发送成功"
     except Exception as e:
         print(f"❌ 邮件发送失败: {e}")
-        return False
+        return False, str(e)
 
 
 def send_daily_summary(items):
@@ -163,4 +164,5 @@ def send_daily_summary(items):
         </div>
     </div>"""
 
-    return send_email("🥗 食物保质期每日提醒", html)
+    ok, _ = send_email("🥗 食物保质期每日提醒", html)
+    return ok
