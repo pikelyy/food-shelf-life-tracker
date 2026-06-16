@@ -9,6 +9,7 @@ from utils.database import (
     get_shopping_suggestions,
 )
 from utils.notification import save_config, _get_config, send_email
+from utils.auth import register_user, login_user
 
 st.set_page_config(page_title="Food Shelf Life Tracker", page_icon="🥗", layout="wide")
 
@@ -124,8 +125,56 @@ st.markdown(
 # 初始化数据库
 init_db()
 
-# ========== 侧边栏 - 邮箱配置 ==========
+# ========== 用户登录 / 注册 ==========
+if "user_id" not in st.session_state:
+    st.session_state.user_id = None
+    st.session_state.username = None
+
+if not st.session_state.user_id:
+    st.markdown("""
+    <div style="max-width:400px;margin:3rem auto;text-align:center;">
+        <h1 style="font-size:3rem;margin-bottom:0;">🥗</h1>
+        <h2 style="color:#2d1810;">Food Shelf Life Tracker</h2>
+        <p style="color:#8d6e63;">登录后开始追踪食品保质期</p>
+    </div>
+    """, unsafe_allow_html=True)
+
+    tab_login, tab_register = st.tabs(["🔑 登录", "📝 注册"])
+
+    with tab_login:
+        with st.form("login_form"):
+            username = st.text_input("用户名", placeholder="输入用户名")
+            password = st.text_input("密码", type="password", placeholder="输入密码")
+            if st.form_submit_button("登录", type="primary", use_container_width=True):
+                ok, msg, uid = login_user(username, password)
+                if ok:
+                    st.session_state.user_id = uid
+                    st.session_state.username = username.strip()
+                    st.rerun()
+                else:
+                    st.error(msg)
+
+    with tab_register:
+        with st.form("register_form"):
+            new_user = st.text_input("用户名", placeholder="至少2个字符，支持中文")
+            new_pwd = st.text_input("密码", type="password", placeholder="至少4个字符")
+            if st.form_submit_button("注册", use_container_width=True):
+                ok, msg = register_user(new_user, new_pwd)
+                if ok:
+                    st.success(msg + "，请切换到登录页登录")
+                else:
+                    st.error(msg)
+
+    st.stop()
+
+# ========== 侧边栏 - 用户信息 & 邮箱配置 ==========
 with st.sidebar:
+    st.markdown(f"👋 欢迎，**{st.session_state.username}**")
+    if st.button("🚪 退出登录"):
+        st.session_state.user_id = None
+        st.session_state.username = None
+        st.rerun()
+    st.markdown("---")
     st.markdown("### � 邮件提醒设置")
 
     mail_config = _get_config()
@@ -208,7 +257,7 @@ st.markdown("---")
 
 # ========== 检查即将过期商品，显示提醒横幅 ==========
 today = datetime.today().strftime("%Y-%m-%d")
-all_items = get_all_items()
+all_items = get_all_items(st.session_state.user_id)
 expiring_soon = [
     it for it in all_items
     if it["expire_date"] >= today
@@ -258,6 +307,7 @@ with tab1:
             st.error("请输入商品名称")
         else:
             add_item(
+                st.session_state.user_id,
                 name.strip(),
                 category,
                 purchase_date.strftime("%Y-%m-%d"),
@@ -349,7 +399,7 @@ with tab3:
         unsafe_allow_html=True,
     )
 
-    suggestions = get_shopping_suggestions()
+    suggestions = get_shopping_suggestions(st.session_state.user_id)
 
     if not suggestions:
         st.success("🎉 所有商品都很新鲜，暂时不需要购物！")
