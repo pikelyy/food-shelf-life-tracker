@@ -21,10 +21,11 @@ jobs:
         run: |
           pip install -r requirements.txt
 
-      - name: Send daily reminder email
+      - name: Send daily reminder
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
           MAIL_SENDER: ${{ secrets.MAIL_SENDER }}
           MAIL_PASSWORD: ${{ secrets.MAIL_PASSWORD }}
           MAIL_RECIPIENT: ${{ secrets.MAIL_RECIPIENT }}
+          PUSHPLUS_TOKEN: ${{ secrets.PUSHPLUS_TOKEN }}
         run: python reminder_service.py

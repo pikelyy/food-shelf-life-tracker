@@ -8,7 +8,7 @@ from utils.database import (
     delete_item,
     get_shopping_suggestions,
 )
-from utils.notification import save_config, _get_config, send_email
+from utils.notification import save_config, _get_config, send_email, send_pushplus
 from utils.auth import register_user, login_user
 
 st.set_page_config(page_title="Food Shelf Life Tracker", page_icon="🥗", layout="wide")
@@ -200,7 +200,7 @@ with st.sidebar:
                                   placeholder="接收提醒的邮箱")
 
         if st.button("💾 保存配置", use_container_width=True):
-            save_config(sender, password, recipient)
+            save_config(sender, password, recipient, pushplus_token)
             st.success("✅ 配置已保存！")
             st.rerun()
 
@@ -211,6 +211,44 @@ with st.sidebar:
                 ok, err = send_email("🥗 测试邮件", "<h2>邮箱配置成功！</h2><p>以后每天会收到食物保质期提醒邮件。</p>")
                 if ok:
                     st.success("✅ 测试邮件已发送，请查收！")
+                else:
+                    st.error(f"❌ 发送失败：{err}")
+
+    st.markdown("---")
+    st.markdown("### 📱 PushPlus 微信推送")
+
+    pushplus_token = mail_config.get("pushplus_token", "")
+    pp_configured = bool(pushplus_token)
+
+    if pp_configured:
+        st.markdown("""\
+<div style="background:#e8f5e9;border-radius:10px;padding:0.6rem 1rem;font-size:0.8rem;color:#2e7d32;">
+✅ PushPlus 已配置
+</div>""", unsafe_allow_html=True)
+    else:
+        st.markdown("""\
+<div style="background:#fff3e0;border-radius:10px;padding:0.6rem 1rem;font-size:0.8rem;color:#e65100;">
+⚠️ 未配置 PushPlus Token
+</div>""", unsafe_allow_html=True)
+
+    with st.expander("⚙️ 配置 PushPlus"):
+        pushplus_token = st.text_input("PushPlus Token", type="password",
+                                        value=mail_config.get("pushplus_token", ""),
+                                        placeholder="从 pushplus.plus 获取")
+        st.caption("在 pushplus.plus 网站微信扫码注册后，进入「个人中心」获取 Token")
+
+        if st.button("💾 保存配置", use_container_width=True, key="save_pp"):
+            save_config(sender, password, recipient, pushplus_token)
+            st.success("✅ 配置已保存！")
+            st.rerun()
+
+    # PushPlus 测试
+    if pp_configured:
+        if st.button("📱 发送测试 PushPlus", use_container_width=True):
+            with st.spinner("发送中..."):
+                ok, err = send_pushplus("🥗 测试消息", "<h2>PushPlus 配置成功！</h2><p>以后每天会收到食物保质期提醒。</p>")
+                if ok:
+                    st.success("✅ 测试消息已发送到微信，请查收！")
                 else:
                     st.error(f"❌ 发送失败：{err}")
 
@@ -235,8 +273,8 @@ with st.sidebar:
 <code>MAIL_SENDER</code><br>
 <code>MAIL_PASSWORD</code><br>
 <code>MAIL_RECIPIENT</code><br>
+<code>PUSHPLUS_TOKEN</code><br>
 <code>DATABASE_URL</code><br>
-（邮箱服务商自动识别）
 </div>""", unsafe_allow_html=True)
 
     st.markdown("---")

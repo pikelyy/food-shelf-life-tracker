@@ -1,17 +1,22 @@
 """
-邮件通知模块 - 通过 SMTP 发送提醒（自动识别 QQ邮箱 / 163邮箱）
+邮件通知模块 + PushPlus 微信推送
+
+邮件通过 SMTP 发送（自动识别 QQ邮箱 / 163邮箱）
+PushPlus 推送到微信（pushplus.plus）
 
 环境变量配置（部署时设置）：
-    MAIL_SENDER     发件邮箱（如 example@qq.com）
-    MAIL_PASSWORD   邮箱授权码（非登录密码）
-    MAIL_RECIPIENT  收件邮箱
+    MAIL_SENDER       发件邮箱（如 example@qq.com）
+    MAIL_PASSWORD     邮箱授权码（非登录密码）
+    MAIL_RECIPIENT    收件邮箱
+    PUSHPLUS_TOKEN    PushPlus 微信推送 Token（可选）
 """
 
 import os
+import json
+import urllib.request
 import smtplib
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
-import json
 
 CONFIG_FILE = os.path.join(
     os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "mail_config.json"
@@ -35,13 +40,14 @@ def _detect_smtp(email):
 
 
 def _get_config():
-    """获取邮件配置：优先环境变量，其次本地配置文件"""
+    """获取配置：优先环境变量，其次本地配置文件"""
     config = {
         "sender": os.environ.get("MAIL_SENDER", ""),
         "password": os.environ.get("MAIL_PASSWORD", ""),
         "recipient": os.environ.get("MAIL_RECIPIENT", ""),
         "server": os.environ.get("SMTP_SERVER", ""),
         "port": int(os.environ.get("SMTP_PORT", "0")),
+        "pushplus_token": os.environ.get("PUSHPLUS_TOKEN", ""),
     }
 
     # 如果环境变量不全，尝试读取本地配置
@@ -50,7 +56,7 @@ def _get_config():
             try:
                 with open(CONFIG_FILE, "r", encoding="utf-8") as f:
                     local = json.load(f)
-                    for k in ("sender", "password", "recipient", "server", "port"):
+                    for k in ("sender", "password", "recipient", "server", "port", "pushplus_token"):
                         if local.get(k):
                             config[k] = local[k]
             except Exception:
@@ -67,8 +73,8 @@ def _get_config():
     return config
 
 
-def save_config(sender, password, recipient):
-    """保存邮件配置到本地文件"""
+def save_config(sender, password, recipient, pushplus_token=""):
+    """保存配置到本地文件"""
     server, port = _detect_smtp(sender)
     config = {
         "sender": sender,
@@ -76,6 +82,7 @@ def save_config(sender, password, recipient):
         "recipient": recipient,
         "server": server,
         "port": port,
+        "pushplus_token": pushplus_token,
     }
     with open(CONFIG_FILE, "w", encoding="utf-8") as f:
         json.dump(config, f, ensure_ascii=False, indent=2)
@@ -92,10 +99,10 @@ def send_email(subject, body):
     config = _get_config()
     if not config["sender"] or not config["password"]:
         print("⚠️  邮件未配置，跳过发送。请在页面侧边栏设置邮箱。")
-        return False
+        return False, "未配置邮箱"
     if not config["recipient"]:
         print("⚠️  未设置收件邮箱，跳过发送。")
-        return False
+        return False, "未设置收件邮箱"
 
     try:
         msg = MIMEMultipart("alternative")
@@ -117,19 +124,59 @@ def send_email(subject, body):
         return False, str(e)
 
 
+# ---------- PushPlus 微信推送 ----------
+
+def send_pushplus(title, content, token=None):
+    """通过 PushPlus 推送到微信"""
+    config = _get_config()
+    token = token or config.get("pushplus_token", "")
+    if not token:
+        return False, "未配置 PushPlus Token"
+
+    try:
+        data = json.dumps({
+            "token": token,
+            "title": title,
+            "content": content,
+            "template": "html",
+        }).encode("utf-8")
+
+        req = urllib.request.Request(
+            "https://www.pushplus.plus/send",
+            data=data,
+            headers={"Content-Type": "application/json"},
+        )
+        resp = urllib.request.urlopen(req, timeout=10)
+        result = json.loads(resp.read().decode("utf-8"))
+
+        if result.get("code") == 200:
+            print(f"📱 PushPlus 已发送: {title}")
+            return True, "发送成功"
+        else:
+            msg = result.get("msg", "未知错误")
+            print(f"❌ PushPlus 发送失败: {msg}")
+            return False, msg
+    except Exception as e:
+        print(f"❌ PushPlus 请求失败: {e}")
+        return False, str(e)
+
+
 def send_daily_summary(items):
-    """发送每日汇总邮件"""
+    """发送每日汇总（邮件 + PushPlus）"""
     if not items:
         print("✅ 没有需要提醒的商品")
-        return False
+        return True
 
-    today = __import__("datetime").datetime.today().strftime("%Y-%m-%d")
+    from datetime import datetime
+    today = datetime.today().strftime("%Y-%m-%d")
 
-    # 构建 HTML 邮件内容
-    rows_html = ""
+    # 构建列表文本
+    text_rows = ""
+    html_rows = ""
     for item in items:
-        status = "⚠️ 即将过期" if item["expire_date"] >= today else "🚨 已过期"
-        rows_html += f"""
+        status = "即将过期" if item["expire_date"] >= today else "已过期"
+        text_rows += f"  · {item['name']}（{item['category']}）{status} - {item['expire_date']}\n"
+        html_rows += f"""
         <tr>
             <td style="padding:10px;border-bottom:1px solid #eee;">{item['name']}</td>
             <td style="padding:10px;border-bottom:1px solid #eee;">{item['category']}</td>
@@ -137,6 +184,7 @@ def send_daily_summary(items):
             <td style="padding:10px;border-bottom:1px solid #eee;">{status}</td>
         </tr>"""
 
+    # 构建 HTML
     html = f"""
     <div style="max-width:600px;margin:0 auto;font-family:Arial,sans-serif;">
         <div style="background:#ff9800;color:white;padding:20px;text-align:center;border-radius:12px 12px 0 0;">
@@ -155,14 +203,33 @@ def send_daily_summary(items):
                     </tr>
                 </thead>
                 <tbody>
-                    {rows_html}
+                    {html_rows}
                 </tbody>
             </table>
             <p style="color:#999;font-size:12px;margin-top:20px;text-align:center;">
-                Food Shelf Life Tracker · 自动提醒邮件
+                Food Shelf Life Tracker · 自动提醒
             </p>
         </div>
     </div>"""
 
-    ok, _ = send_email("🥗 食物保质期每日提醒", html)
-    return ok
+    # 纯文本版（用于 PushPlus / 日志）
+    text = f"🥗 食物保质期提醒 ({today})\n{'='*30}\n{text_rows}\n{'='*30}"
+
+    # 发送邮件
+    email_ok = True
+    mail_config = _get_config()
+    if mail_config["sender"] and mail_config["password"]:
+        ok, _ = send_email("🥗 食物保质期每日提醒", html)
+        email_ok = ok
+    else:
+        print("⏭️ 邮件未配置，跳过")
+
+    # 发送 PushPlus
+    push_ok = True
+    if mail_config.get("pushplus_token"):
+        ok, _ = send_pushplus("🥗 食物保质期提醒", html)
+        push_ok = ok
+    else:
+        print("⏭️ PushPlus 未配置，跳过")
+
+    return email_ok and push_ok
