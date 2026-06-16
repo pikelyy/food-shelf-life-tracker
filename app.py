@@ -193,16 +193,21 @@ with st.sidebar:
 
     with st.expander("⚙️ 配置邮箱"):
         sender = st.text_input("发件邮箱", value=mail_config.get("sender", ""),
-                               placeholder="example@qq.com / example@163.com")
+                               placeholder="example@qq.com / example@163.com",
+                               key="mail_sender_input")
         password = st.text_input("邮箱授权码", type="password", value=mail_config.get("password", ""),
-                                 placeholder="开启SMTP服务获取授权码")
+                                 placeholder="开启SMTP服务获取授权码",
+                                 key="mail_password_input")
         recipient = st.text_input("收件邮箱", value=mail_config.get("recipient", ""),
-                                  placeholder="接收提醒的邮箱")
+                                  placeholder="接收提醒的邮箱",
+                                  key="mail_recipient_input")
 
-        if st.button("💾 保存配置", use_container_width=True):
-            save_config(sender, password, recipient, pushplus_token)
-            st.success("✅ 配置已保存！")
-            st.rerun()
+        if st.button("💾 保存配置", use_container_width=True, key="save_mail"):
+            try:
+                save_config(sender, password, recipient, pp_token_input)
+                st.success("✅ 配置已保存！")
+            except Exception as e:
+                st.error(f"❌ 保存失败：{e}")
 
     # 邮件测试
     if configured:
@@ -217,8 +222,8 @@ with st.sidebar:
     st.markdown("---")
     st.markdown("### 📱 PushPlus 微信推送")
 
-    pushplus_token = mail_config.get("pushplus_token", "")
-    pp_configured = bool(pushplus_token)
+    pp_token_input = mail_config.get("pushplus_token", "")
+    pp_configured = bool(pp_token_input)
 
     if pp_configured:
         st.markdown("""\
@@ -232,15 +237,18 @@ with st.sidebar:
 </div>""", unsafe_allow_html=True)
 
     with st.expander("⚙️ 配置 PushPlus"):
-        pushplus_token = st.text_input("PushPlus Token", type="password",
+        pp_token_input = st.text_input("PushPlus Token", type="password",
                                         value=mail_config.get("pushplus_token", ""),
-                                        placeholder="从 pushplus.plus 获取")
+                                        placeholder="从 pushplus.plus 获取",
+                                        key="pushplus_token_input")
         st.caption("在 pushplus.plus 网站微信扫码注册后，进入「个人中心」获取 Token")
 
         if st.button("💾 保存配置", use_container_width=True, key="save_pp"):
-            save_config(sender, password, recipient, pushplus_token)
-            st.success("✅ 配置已保存！")
-            st.rerun()
+            try:
+                save_config(sender, password, recipient, pp_token_input)
+                st.success("✅ PushPlus 配置已保存！")
+            except Exception as e:
+                st.error(f"❌ 保存失败：{e}")
 
     # PushPlus 测试
     if pp_configured:
