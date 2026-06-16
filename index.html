@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Food Shelf Life Tracker - 食物保质期追踪器</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            background: #fdf6f0;
+            color: #2d1810;
+            line-height: 1.6;
+        }
+
+        .container { max-width: 960px; margin: 0 auto; padding: 0 24px; }
+
+        /* Hero */
+        .hero {
+            background: linear-gradient(135deg, #ff9800, #f57c00);
+            color: white;
+            padding: 80px 0 60px;
+            text-align: center;
+        }
+        .hero h1 { font-size: 2.8rem; margin-bottom: 8px; letter-spacing: 1px; }
+        .hero .subtitle { font-size: 1.2rem; opacity: 0.9; margin-bottom: 24px; }
+        .hero .badge {
+            display: inline-block;
+            background: rgba(255,255,255,0.2);
+            padding: 6px 20px;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            backdrop-filter: blur(4px);
+        }
+        .hero .btn {
+            display: inline-block;
+            margin-top: 28px;
+            padding: 14px 40px;
+            background: white;
+            color: #e65100;
+            border-radius: 30px;
+            font-size: 1.1rem;
+            font-weight: 600;
+            text-decoration: none;
+            transition: transform 0.15s, box-shadow 0.15s;
+            box-shadow: 0 4px 16px rgba(0,0,0,0.15);
+        }
+        .hero .btn:hover { transform: translateY(-2px); box-shadow: 0 6px 24px rgba(0,0,0,0.2); }
+
+        /* Sections */
+        section { padding: 60px 0; }
+        section:nth-child(even) { background: white; }
+
+        .section-title {
+            font-size: 1.6rem;
+            text-align: center;
+            margin-bottom: 40px;
+            position: relative;
+        }
+        .section-title::after {
+            content: "";
+            display: block;
+            width: 60px;
+            height: 3px;
+            background: #ff9800;
+            margin: 12px auto 0;
+            border-radius: 2px;
+        }
+
+        /* Features */
+        .features { display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; }
+        .feature-card {
+            background: #fdf6f0;
+            border-radius: 16px;
+            padding: 28px 20px;
+            text-align: center;
+            transition: transform 0.15s;
+        }
+        .feature-card:hover { transform: translateY(-4px); }
+        .feature-card .icon { font-size: 2.4rem; margin-bottom: 12px; }
+        .feature-card h3 { font-size: 1.1rem; margin-bottom: 8px; color: #2d1810; }
+        .feature-card p { font-size: 0.9rem; color: #666; }
+
+        /* How to use */
+        .steps { max-width: 600px; margin: 0 auto; }
+        .step {
+            display: flex; gap: 16px; margin-bottom: 24px; align-items: flex-start;
+        }
+        .step-num {
+            background: #ff9800;
+            color: white;
+            width: 36px; height: 36px;
+            border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            font-weight: 700; font-size: 1rem; flex-shrink: 0;
+        }
+        .step-content h4 { font-size: 1rem; color: #2d1810; margin-bottom: 4px; }
+        .step-content p { font-size: 0.9rem; color: #666; }
+        .step-content code {
+            background: #f5f5f5;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 0.85rem;
+            color: #e65100;
+        }
+
+        /* Tech stack */
+        .tech-list { display: flex; flex-wrap: wrap; justify-content: center; gap: 12px; }
+        .tech-item {
+            background: #fdf6f0;
+            border: 1px solid #e8d5c8;
+            padding: 8px 20px;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            color: #5d4037;
+        }
+
+        /* Screenshot placeholder */
+        .screenshot-placeholder {
+            background: #fff8e1;
+            border: 2px dashed #ffb74d;
+            border-radius: 16px;
+            padding: 60px 20px;
+            text-align: center;
+            color: #e65100;
+            font-size: 1.1rem;
+        }
+        .screenshot-placeholder .icon { font-size: 3rem; margin-bottom: 12px; }
+
+        /* Footer */
+        footer {
+            background: #2d1810;
+            color: rgba(255,255,255,0.6);
+            text-align: center;
+            padding: 32px 0;
+            font-size: 0.85rem;
+        }
+        footer a { color: #ffb74d; text-decoration: none; }
+        footer a:hover { text-decoration: underline; }
+
+        @media (max-width: 768px) {
+            .hero h1 { font-size: 2rem; }
+            .features { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+
+<!-- Hero -->
+<div class="hero">
+    <div class="container">
+        <h1>🥗 Food Shelf Life Tracker</h1>
+        <p class="subtitle">追踪保质期 · 拒绝浪费</p>
+        <div class="badge">🚀 已部署上线 · 免费使用</div>
+        <br>
+        <a href="https://food-shelf-life-tracker-bfbel7v9wwjjzyseszkxlc.streamlit.app/" class="btn" target="_blank">🌐 打开在线应用</a>
+    </div>
+</div>
+
+<!-- Features -->
+<section>
+    <div class="container">
+        <h2 class="section-title">✨ 核心功能</h2>
+        <div class="features">
+            <div class="feature-card">
+                <div class="icon">📦</div>
+                <h3>商品录入</h3>
+                <p>手动输入名称、分类、购买日期和保质期，自动计算到期日</p>
+            </div>
+            <div class="feature-card">
+                <div class="icon">📋</div>
+                <h3>智能清单</h3>
+                <p>卡片式展示食品状态：正常 🟢 / 即将过期 🟡 / 已过期 🔴</p>
+            </div>
+            <div class="feature-card">
+                <div class="icon">📧</div>
+                <h3>邮件提醒</h3>
+                <p>每天 9:00 自动发送邮件汇总，不再错过任何保质期</p>
+            </div>
+            <div class="feature-card">
+                <div class="icon">🛒</div>
+                <h3>购物建议</h3>
+                <p>一键生成过期/临期商品清单，采购更方便</p>
+            </div>
+            <div class="feature-card">
+                <div class="icon">☁️</div>
+                <h3>云端部署</h3>
+                <p>支持 Streamlit Cloud + Neon PostgreSQL，随时访问</p>
+            </div>
+            <div class="feature-card">
+                <div class="icon">🎨</div>
+                <h3>精美设计</h3>
+                <p>暖色系卡片 UI，悬停动效，清晰直观</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- How to Use -->
+<section>
+    <div class="container">
+        <h2 class="section-title">📖 使用说明</h2>
+        <div class="steps">
+            <div class="step">
+                <div class="step-num">1</div>
+                <div class="step-content">
+                    <h4>打开应用</h4>
+                    <p>点击上方按钮或在浏览器访问 Streamlit Cloud 链接</p>
+                </div>
+            </div>
+            <div class="step">
+                <div class="step-num">2</div>
+                <div class="step-content">
+                    <h4>添加商品</h4>
+                    <p>在「录入商品」页面填写名称、分类、购买日期和保质期天数</p>
+                </div>
+            </div>
+            <div class="step">
+                <div class="step-num">3</div>
+                <div class="step-content">
+                    <h4>配置邮箱（可选）</h4>
+                    <p>侧边栏填写邮箱和授权码，开启每日邮件提醒</p>
+                </div>
+            </div>
+            <div class="step">
+                <div class="step-num">4</div>
+                <div class="step-content">
+                    <h4>查看清单 & 购物建议</h4>
+                    <p>随时查看食品状态，过期商品自动标红，一键生成购物清单</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Tech Stack -->
+<section>
+    <div class="container">
+        <h2 class="section-title">🛠️ 技术栈</h2>
+        <div class="tech-list">
+            <span class="tech-item">Python 3.12</span>
+            <span class="tech-item">Streamlit</span>
+            <span class="tech-item">PostgreSQL (Neon)</span>
+            <span class="tech-item">SMTP 邮件</span>
+            <span class="tech-item">GitHub Actions</span>
+            <span class="tech-item">Streamlit Cloud</span>
+        </div>
+    </div>
+</section>
+
+<!-- Screenshot -->
+<section>
+    <div class="container">
+        <h2 class="section-title">📸 页面预览</h2>
+        <div class="screenshot-placeholder">
+            <div class="icon">🥗</div>
+            <p>截图待补充 — 打开在线应用查看完整界面</p>
+        </div>
+    </div>
+</section>
+
+<!-- Open Source -->
+<section>
+    <div class="container" style="text-align:center;">
+        <h2 class="section-title">💻 开源</h2>
+        <p style="color:#666;margin-bottom:20px;">本项目完全开源，欢迎 Star、Fork 和贡献代码</p>
+        <a href="https://github.com/pikelyy/food-shelf-life-tracker" target="_blank" style="display:inline-block;padding:12px 32px;background:#2d1810;color:white;border-radius:30px;text-decoration:none;font-weight:500;transition:opacity 0.15s;">
+            ⭐ GitHub 仓库
+        </a>
+    </div>
+</section>
+
+<footer>
+    <div class="container">
+        <p>Food Shelf Life Tracker · Made with ❤️</p>
+        <p style="margin-top:4px;"><a href="https://github.com/pikelyy/food-shelf-life-tracker">GitHub</a> · <a href="https://food-shelf-life-tracker-bfbel7v9wwjjzyseszkxlc.streamlit.app/">在线应用</a></p>
+    </div>
+</footer>
+
+</body>
+</html>
