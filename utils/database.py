@@ -18,7 +18,7 @@ if DATABASE_URL:
     from psycopg2.extras import RealDictCursor
 
     def get_connection():
-        conn = psycopg2.connect(DATABASE_URL, sslmode="require")
+        conn = psycopg2.connect(DATABASE_URL)
         conn.autocommit = True
         return conn
 
