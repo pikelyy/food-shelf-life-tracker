@@ -17,8 +17,12 @@ if DATABASE_URL:
     import psycopg2
     from psycopg2.extras import RealDictCursor
 
+    # 清理连接串：去掉 psycopg2 不支持的参数（如 channel_binding）
+    _base_url = DATABASE_URL.split("?")[0]
+    _full_url = _base_url + "?sslmode=require"
+
     def get_connection():
-        conn = psycopg2.connect(DATABASE_URL)
+        conn = psycopg2.connect(_full_url)
         conn.autocommit = True
         return conn
 
