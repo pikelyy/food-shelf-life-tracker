@@ -144,16 +144,14 @@ with st.sidebar:
 
     with st.expander("⚙️ 配置邮箱"):
         sender = st.text_input("发件邮箱", value=mail_config.get("sender", ""),
-                               placeholder="example@qq.com")
+                               placeholder="example@qq.com / example@163.com")
         password = st.text_input("邮箱授权码", type="password", value=mail_config.get("password", ""),
-                                 placeholder="QQ邮箱需开启SMTP获取授权码")
+                                 placeholder="开启SMTP服务获取授权码")
         recipient = st.text_input("收件邮箱", value=mail_config.get("recipient", ""),
                                   placeholder="接收提醒的邮箱")
-        server = st.selectbox("邮箱服务商", ["smtp.qq.com", "smtp.163.com"],
-                              index=0 if mail_config.get("server", "smtp.qq.com") == "smtp.qq.com" else 1)
 
         if st.button("💾 保存配置", use_container_width=True):
-            save_config(sender, password, recipient, server)
+            save_config(sender, password, recipient)
             st.success("✅ 配置已保存！")
             st.rerun()
 
@@ -170,10 +168,15 @@ with st.sidebar:
     st.markdown("---")
     st.markdown("""\
 <div style="font-size:0.75rem;color:#999;line-height:1.6;">
-📌 <b>QQ邮箱获取授权码</b><br>
+📌 <b>获取邮箱授权码</b><br><br>
+<b>QQ邮箱：</b><br>
 1. 登录 QQ邮箱 → 设置 → 账户<br>
 2. 开启 "POP3/SMTP服务"<br>
-3. 生成授权码（复制粘贴到上方）
+3. 生成授权码<br><br>
+<b>163邮箱：</b><br>
+1. 登录 163邮箱 → 设置 → POP3/SMTP<br>
+2. 开启 "POP3/SMTP服务"<br>
+3. 生成授权码
 </div>""", unsafe_allow_html=True)
 
     st.markdown("---")
@@ -183,7 +186,8 @@ with st.sidebar:
 <code>MAIL_SENDER</code><br>
 <code>MAIL_PASSWORD</code><br>
 <code>MAIL_RECIPIENT</code><br>
-<code>DATABASE_URL</code>
+<code>DATABASE_URL</code><br>
+（邮箱服务商自动识别）
 </div>""", unsafe_allow_html=True)
 
     st.markdown("---")

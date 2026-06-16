@@ -1,12 +1,10 @@
 """
-邮件通知模块 - 通过 SMTP (QQ邮箱/163邮箱) 发送提醒
+邮件通知模块 - 通过 SMTP 发送提醒（自动识别 QQ邮箱 / 163邮箱）
 
 环境变量配置（部署时设置）：
     MAIL_SENDER     发件邮箱（如 example@qq.com）
     MAIL_PASSWORD   邮箱授权码（非登录密码）
     MAIL_RECIPIENT  收件邮箱
-    SMTP_SERVER     smtp.qq.com 或 smtp.163.com（默认 smtp.qq.com）
-    SMTP_PORT       465（默认）
 """
 
 import os
@@ -20,14 +18,30 @@ CONFIG_FILE = os.path.join(
 )
 
 
+def _detect_smtp(email):
+    """根据邮箱地址自动识别 SMTP 服务器"""
+    domain = email.lower().split("@")[-1] if "@" in email else ""
+    if "163" in domain:
+        return "smtp.163.com", 465
+    elif "126" in domain:
+        return "smtp.126.com", 465
+    elif "gmail" in domain:
+        return "smtp.gmail.com", 465
+    elif "outlook" in domain or "hotmail" in domain:
+        return "smtp-mail.outlook.com", 587
+    else:
+        # 默认 QQ/QQ邮箱 及其他
+        return "smtp.qq.com", 465
+
+
 def _get_config():
     """获取邮件配置：优先环境变量，其次本地配置文件"""
     config = {
         "sender": os.environ.get("MAIL_SENDER", ""),
         "password": os.environ.get("MAIL_PASSWORD", ""),
         "recipient": os.environ.get("MAIL_RECIPIENT", ""),
-        "server": os.environ.get("SMTP_SERVER", "smtp.qq.com"),
-        "port": int(os.environ.get("SMTP_PORT", "465")),
+        "server": os.environ.get("SMTP_SERVER", ""),
+        "port": int(os.environ.get("SMTP_PORT", "0")),
     }
 
     # 如果环境变量不全，尝试读取本地配置
@@ -42,11 +56,20 @@ def _get_config():
             except Exception:
                 pass
 
+    # 自动识别 SMTP 服务器（如果未手动指定）
+    if not config["server"] or config["port"] == 0:
+        server, port = _detect_smtp(config["sender"])
+        if not config["server"]:
+            config["server"] = server
+        if config["port"] == 0:
+            config["port"] = port
+
     return config
 
 
-def save_config(sender, password, recipient, server="smtp.qq.com", port=465):
+def save_config(sender, password, recipient):
     """保存邮件配置到本地文件"""
+    server, port = _detect_smtp(sender)
     config = {
         "sender": sender,
         "password": password,
