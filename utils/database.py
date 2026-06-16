@@ -33,7 +33,10 @@ if DATABASE_URL:
                 cur.execute(sql, params or ())
                 if sql.strip().upper().startswith("SELECT"):
                     rows = cur.fetchall()
-                    return [dict(r) for r in rows]
+                    result = [dict(r) for r in rows]
+                    if fetchone:
+                        return result[0] if result else None
+                    return result
                 return None
         finally:
             conn.close()
