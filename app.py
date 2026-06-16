@@ -8,6 +8,7 @@ from utils.database import (
     delete_item,
     get_shopping_suggestions,
 )
+from utils.notification import save_config, _get_config, send_email
 
 st.set_page_config(page_title="Food Shelf Life Tracker", page_icon="🥗", layout="wide")
 
@@ -123,53 +124,70 @@ st.markdown(
 # 初始化数据库
 init_db()
 
-# ========== 侧边栏 - 设置指南 ==========
+# ========== 侧边栏 - 邮箱配置 ==========
 with st.sidebar:
-    st.markdown("### ⚙️ 设置每日提醒")
-    st.markdown(
-        """
-    <div style="background:white;border-radius:12px;padding:1rem 1.2rem;font-size:0.85rem;box-shadow:0 1px 6px rgba(0,0,0,0.05);">
-        <p style="margin:0 0 0.5rem 0;color:#555;">
-        想让电脑每天自动弹窗提醒你食物要过期了？只需两步：
-        </p>
-        <ol style="margin:0;padding-left:1.2rem;color:#555;line-height:1.8;">
-            <li>
-                右键 <strong>PowerShell</strong> → 以管理员身份运行
-            </li>
-            <li>
-                粘贴以下命令执行：
-            </li>
-        </ol>
-    </div>
-    """,
-        unsafe_allow_html=True,
-    )
+    st.markdown("### � 邮件提醒设置")
 
-    st.code(
-        f"cd {os.path.dirname(os.path.abspath(__file__))}",
-        language="powershell",
-    )
+    mail_config = _get_config()
+    configured = bool(mail_config["sender"] and mail_config["password"])
 
-    col1, col2, _ = st.columns([0.25, 0.45, 0.3])
-    with col1:
-        st.code(".venv\\Scripts\\Activate.ps1", language="powershell")
-    with col2:
-        st.code("python setup_scheduler.py", language="powershell")
+    if configured:
+        st.markdown(f"""\
+<div style="background:#e8f5e9;border-radius:10px;padding:0.6rem 1rem;font-size:0.8rem;color:#2e7d32;">
+✅ 邮箱已配置<br>发件: {mail_config['sender']}<br>收件: {mail_config['recipient']}
+</div>""", unsafe_allow_html=True)
+    else:
+        st.markdown("""\
+<div style="background:#fff3e0;border-radius:10px;padding:0.6rem 1rem;font-size:0.8rem;color:#e65100;">
+⚠️ 未设置邮箱，无法发送提醒
+</div>""", unsafe_allow_html=True)
 
-    st.markdown(
-        """
-    <div style="margin-top:0.5rem;font-size:0.8rem;color:#888;">
-        ✅ 设置成功后，每天 9:00 系统会自动检查并弹窗提醒
-    </div>
-    """,
-        unsafe_allow_html=True,
-    )
+    with st.expander("⚙️ 配置邮箱"):
+        sender = st.text_input("发件邮箱", value=mail_config.get("sender", ""),
+                               placeholder="example@qq.com")
+        password = st.text_input("邮箱授权码", type="password", value=mail_config.get("password", ""),
+                                 placeholder="QQ邮箱需开启SMTP获取授权码")
+        recipient = st.text_input("收件邮箱", value=mail_config.get("recipient", ""),
+                                  placeholder="接收提醒的邮箱")
+        server = st.selectbox("邮箱服务商", ["smtp.qq.com", "smtp.163.com"],
+                              index=0 if mail_config.get("server", "smtp.qq.com") == "smtp.qq.com" else 1)
+
+        if st.button("💾 保存配置", use_container_width=True):
+            save_config(sender, password, recipient, server)
+            st.success("✅ 配置已保存！")
+            st.rerun()
+
+    # 邮件测试
+    if configured:
+        if st.button("📨 发送测试邮件", use_container_width=True):
+            with st.spinner("发送中..."):
+                ok = send_email("🥗 测试邮件", "<h2>邮箱配置成功！</h2><p>以后每天会收到食物保质期提醒邮件。</p>")
+                if ok:
+                    st.success("✅ 测试邮件已发送，请查收！")
+                else:
+                    st.error("❌ 发送失败，请检查配置")
 
     st.markdown("---")
-    st.markdown(
-        "<div style='font-size:0.8rem;color:#aaa;text-align:center;'>Food Shelf Life Tracker v1.0</div>",
-        unsafe_allow_html=True,
-    )
+    st.markdown("""\
+<div style="font-size:0.75rem;color:#999;line-height:1.6;">
+📌 <b>QQ邮箱获取授权码</b><br>
+1. 登录 QQ邮箱 → 设置 → 账户<br>
+2. 开启 "POP3/SMTP服务"<br>
+3. 生成授权码（复制粘贴到上方）
+</div>""", unsafe_allow_html=True)
+
+    st.markdown("---")
+    st.markdown("""\
+<div style="font-size:0.75rem;color:#bbb;text-align:center;">
+☁️ 部署到云端后，在 Streamlit Secrets 设置：<br>
+<code>MAIL_SENDER</code><br>
+<code>MAIL_PASSWORD</code><br>
+<code>MAIL_RECIPIENT</code><br>
+<code>DATABASE_URL</code>
+</div>""", unsafe_allow_html=True)
+
+    st.markdown("---")
+    st.markdown("<div style='font-size:0.8rem;color:#aaa;text-align:center;'>Food Shelf Life Tracker v1.0</div>", unsafe_allow_html=True)
 
 # ========== 顶部标题 ==========
 col_logo, col_title = st.columns([0.06, 1])
