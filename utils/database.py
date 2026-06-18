@@ -283,18 +283,22 @@ else:
 
     # ---------- 统一导出函数 ----------
     def _execute_sql(sql, params=None):
+        # 将 %s 占位符转换为 SQLite 的 ?
+        sql_sqlite = sql.replace("%s", "?")
         conn = get_connection()
         try:
-            cur = conn.execute(sql, params or ())
+            cur = conn.execute(sql_sqlite, params or ())
             conn.commit()
             return cur
         finally:
             conn.close()
 
     def _query_sql(sql, params=None, fetchone=False):
+        # 将 %s 占位符转换为 SQLite 的 ?
+        sql_sqlite = sql.replace("%s", "?")
         conn = get_connection()
         try:
-            rows = conn.execute(sql, params or ()).fetchall()
+            rows = conn.execute(sql_sqlite, params or ()).fetchall()
             result = [dict(r) for r in rows]
             if fetchone:
                 return result[0] if result else None
